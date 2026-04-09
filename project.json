@@ -1,0 +1,24 @@
+{
+  "overview": "A full-featured project management dashboard for Shree Adishakti Solar's booking list. Manage all solar project bookings with a compact table view and detailed record drawer covering 30+ fields including customer info, financials, installation milestones, and GST details.",
+  "features": [
+    "Add, edit, and delete solar project bookings",
+    "Compact table with 7 key columns: SL No, Customer, Region, Status, KW, Sale Price, Pending Amount",
+    "Detail drawer showing all 30+ fields per project",
+    "Real-time search by customer name and region",
+    "Sort by any column",
+    "Bulk select and bulk delete with confirmation",
+    "Summary stats: project counts by status, total pending amount, total KW",
+    "Pagination with configurable rows per page",
+    "Status-based visual highlighting (REJECT in red)"
+  ],
+  "category": "productivity",
+  "tags": [
+    "solar",
+    "project-management",
+    "dashboard",
+    "crud",
+    "booking",
+    "india"
+  ],
+  "last_updated": "2026-04-08T15:36:20.186Z"
+}

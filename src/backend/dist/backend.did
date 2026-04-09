@@ -1,0 +1,179 @@
+type UserSession = 
+ record {
+   accessLevel: text;
+   token: text;
+   username: text;
+ };
+type UserInfo = 
+ record {
+   accessLevel: text;
+   username: text;
+ };
+type UpdateProjectInput = 
+ record {
+   address: opt text;
+   bookingAgreementDate: opt text;
+   bookingAmount: opt float64;
+   bookingAmountDate: opt text;
+   cashAmount2: opt float64;
+   cashAmount2Date: opt text;
+   consumerAcNo: opt text;
+   currentStage: opt text;
+   customerName: text;
+   deliveryDate: opt text;
+   digitalApprovedLetter: opt bool;
+   district: opt text;
+   employeeName: opt text;
+   employeeType: text;
+   ewayBillNo: opt text;
+   financeAmount1: opt float64;
+   financeAmount2: opt float64;
+   financeDate1: opt text;
+   financeDate2: opt text;
+   freelancerName: opt text;
+   gstAmount: opt float64;
+   gstFillingMonth: opt text;
+   id: text;
+   installationDate: opt text;
+   invoiceNo: opt text;
+   kw: opt float64;
+   lastPaymentDate: opt text;
+   leadSource: text;
+   materialPurchaseDate: opt text;
+   netMeteringDate: opt text;
+   nextStage: opt text;
+   pendingAmount: opt float64;
+   phoneNumber: opt text;
+   projectStatus: ProjectStatus;
+   region: text;
+   remarks: opt text;
+   salePrice: opt float64;
+   signAgreement: opt bool;
+   slNo: nat;
+   subsidyDisbursed: opt float64;
+ };
+type SolarProject = 
+ record {
+   address: opt text;
+   bookingAgreementDate: opt text;
+   bookingAmount: opt float64;
+   bookingAmountDate: opt text;
+   cashAmount2: opt float64;
+   cashAmount2Date: opt text;
+   consumerAcNo: opt text;
+   currentStage: opt text;
+   customerName: text;
+   deliveryDate: opt text;
+   digitalApprovedLetter: opt bool;
+   district: opt text;
+   employeeName: opt text;
+   employeeType: text;
+   ewayBillNo: opt text;
+   financeAmount1: opt float64;
+   financeAmount2: opt float64;
+   financeDate1: opt text;
+   financeDate2: opt text;
+   freelancerName: opt text;
+   gstAmount: opt float64;
+   gstFillingMonth: opt text;
+   id: text;
+   installationDate: opt text;
+   invoiceNo: opt text;
+   kw: opt float64;
+   lastPaymentDate: opt text;
+   leadSource: text;
+   materialPurchaseDate: opt text;
+   netMeteringDate: opt text;
+   nextStage: opt text;
+   pendingAmount: opt float64;
+   phoneNumber: opt text;
+   projectStatus: ProjectStatus;
+   region: text;
+   remarks: opt text;
+   salePrice: opt float64;
+   signAgreement: opt bool;
+   slNo: nat;
+   subsidyDisbursed: opt float64;
+ };
+type ProjectStatus = 
+ variant {
+   CLOSED;
+   ONGOING;
+   OPEN;
+   REJECT;
+ };
+type CreateProjectInput = 
+ record {
+   address: opt text;
+   bookingAgreementDate: opt text;
+   bookingAmount: opt float64;
+   bookingAmountDate: opt text;
+   cashAmount2: opt float64;
+   cashAmount2Date: opt text;
+   consumerAcNo: opt text;
+   currentStage: opt text;
+   customerName: text;
+   deliveryDate: opt text;
+   digitalApprovedLetter: opt bool;
+   district: opt text;
+   employeeName: opt text;
+   employeeType: text;
+   ewayBillNo: opt text;
+   financeAmount1: opt float64;
+   financeAmount2: opt float64;
+   financeDate1: opt text;
+   financeDate2: opt text;
+   freelancerName: opt text;
+   gstAmount: opt float64;
+   gstFillingMonth: opt text;
+   installationDate: opt text;
+   invoiceNo: opt text;
+   kw: opt float64;
+   lastPaymentDate: opt text;
+   leadSource: text;
+   materialPurchaseDate: opt text;
+   netMeteringDate: opt text;
+   nextStage: opt text;
+   pendingAmount: opt float64;
+   phoneNumber: opt text;
+   projectStatus: ProjectStatus;
+   region: text;
+   remarks: opt text;
+   salePrice: opt float64;
+   signAgreement: opt bool;
+   slNo: nat;
+   subsidyDisbursed: opt float64;
+ };
+service : {
+  createProject: (input: CreateProjectInput) -> (SolarProject);
+  createUser: (callerToken: text, username: text, password: text,
+   accessLevel: text) -> (variant {
+                            err: text;
+                            ok: text;
+                          });
+  deleteProject: (id: text) -> (bool);
+  deleteUser: (callerToken: text, username: text) ->
+   (variant {
+      err: text;
+      ok: text;
+    });
+  getAllProjects: () -> (vec SolarProject) query;
+  getProject: (id: text) -> (opt SolarProject) query;
+  getProjectsByRegion: (region: text) -> (vec SolarProject) query;
+  getProjectsByStatus: (status: ProjectStatus) -> (vec SolarProject) query;
+  listUsers: (callerToken: text) ->
+   (variant {
+      err: text;
+      ok: vec UserInfo;
+    }) query;
+  login: (username: text, password: text) ->
+   (variant {
+      err: text;
+      ok: UserSession;
+    });
+  updateProject: (input: UpdateProjectInput) -> (opt SolarProject);
+  validateSession: (token: text) -> (variant {
+                                       err: text;
+                                       ok: UserInfo;
+                                     }) query;
+}
