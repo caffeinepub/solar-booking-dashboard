@@ -301,7 +301,7 @@ export default function Dashboard() {
       {/* Main */}
       <main className="flex-1 max-w-screen-2xl mx-auto w-full px-4 sm:px-6 py-4">
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-4">
           <StatCard
             label="Total Projects"
             value={stats.total}
@@ -337,6 +337,12 @@ export default function Dashboard() {
             value={`${stats.totalKw.toFixed(1)}`}
             color="accent"
             data-ocid="stat-kw"
+          />
+          <StatCard
+            label="Total Received"
+            value={fmtINR(stats.totalReceived)}
+            color="teal"
+            data-ocid="stat-total-received"
           />
           <StatCard
             label="Pending Amount"

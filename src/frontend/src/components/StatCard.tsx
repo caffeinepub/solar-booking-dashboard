@@ -7,7 +7,8 @@ type StatColor =
   | "green"
   | "red"
   | "accent"
-  | "pending";
+  | "pending"
+  | "teal";
 
 interface StatCardProps {
   label: string;
@@ -25,6 +26,7 @@ const colorMap: Record<StatColor, string> = {
   red: "[color:var(--stat-reject)]",
   accent: "text-accent",
   pending: "[color:var(--stat-pending)]",
+  teal: "text-teal-500 dark:text-teal-400",
 };
 
 export function StatCard({

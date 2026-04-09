@@ -179,7 +179,6 @@ module {
     username : Text,
     password : Text,
   ) : { #ok : Types.UserSession; #err : Text } {
-    bootstrapAdmin(users);
     let hashedPw = hashPassword(password);
     switch (users.get(username)) {
       case null { #err("Invalid username or password") };

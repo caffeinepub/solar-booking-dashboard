@@ -454,6 +454,16 @@ export function useProjects(filters?: ProjectFilters) {
     // Always recalculate from payment fields so stats are accurate even if
     // the stored pendingAmount field is stale (e.g. from an old import)
     pendingAmount: filtered.reduce((sum, p) => sum + calcPending(p), 0),
+    // Sum of all received payments: booking + finance1 + finance2 + lastPayment
+    totalReceived: filtered.reduce(
+      (sum, p) =>
+        sum +
+        safeNumCalc(p.bookingAmount) +
+        safeNumCalc(p.financeAmount1) +
+        safeNumCalc(p.financeAmount2) +
+        safeNumCalc(p.cashAmount2),
+      0,
+    ),
   };
 
   return {
