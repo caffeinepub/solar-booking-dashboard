@@ -167,14 +167,16 @@ export function ProjectDrawer({
   const project = useProjectById(projectId);
   const canEdit = !!(onEdit && onDelete && updateProject);
 
+  // Safely sum payment fields, treating undefined/null/NaN as 0
+  const safeN = (n?: number | null) => (n != null && !Number.isNaN(n) ? n : 0);
   const totalReceived = project
-    ? (project.bookingAmount ?? 0) +
-      (project.financeAmount1 ?? 0) +
-      (project.financeAmount2 ?? 0) +
-      (project.cashAmount2 ?? 0)
+    ? safeN(project.bookingAmount) +
+      safeN(project.financeAmount1) +
+      safeN(project.financeAmount2) +
+      safeN(project.cashAmount2)
     : 0;
   const computedPending = project
-    ? (project.salePrice ?? 0) - totalReceived
+    ? safeN(project.salePrice) - totalReceived
     : 0;
 
   return (

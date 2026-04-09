@@ -41,7 +41,48 @@ interface AddEditProjectModalProps {
   onAddFreelancerName: (name: string) => void;
 }
 
-type FormData = Omit<SolarProject, "id" | "slNo">;
+// FormData uses string for numeric inputs to avoid NaN from valueAsNumber on empty fields
+type FormData = {
+  customerName: string;
+  phoneNumber?: string;
+  address?: string;
+  consumerAcNo?: string;
+  projectStatus: ProjectStatus;
+  currentStage?: ProjectStage;
+  region: string;
+  district?: string;
+  employeeType: string;
+  leadSource: string;
+  employeeName?: string;
+  freelancerName?: string;
+  // Financials stored as strings to avoid NaN
+  kw: string;
+  salePrice: string;
+  invoiceNo?: string;
+  bookingAgreementDate?: string;
+  signAgreement?: boolean;
+  digitalApprovedLetter?: boolean;
+  // Finance Details
+  bookingAmount: string;
+  bookingAmountDate?: string;
+  financeAmount1: string;
+  financeDate1?: string;
+  financeAmount2: string;
+  financeDate2?: string;
+  cashAmount2: string;
+  cashAmount2Date?: string;
+  // GST + Subsidy
+  gstAmount: string;
+  gstFillingMonth?: string;
+  subsidyDisbursed: string;
+  // Timeline
+  materialPurchaseDate?: string;
+  deliveryDate?: string;
+  ewayBillNo?: string;
+  installationDate?: string;
+  netMeteringDate?: string;
+  remarks?: string;
+};
 
 const STATUS_OPTIONS: ProjectStatus[] = ["OPEN", "ONGOING", "CLOSED", "REJECT"];
 const EMPLOYEE_TYPES = ["Direct", "Channel Partner", "Franchise"];
@@ -80,6 +121,26 @@ const ODISHA_DISTRICTS = [
   "Sundargarh",
 ];
 
+/** Convert a SolarProject numeric field to a form string, empty string for undefined/null/NaN */
+function numToStr(n?: number): string {
+  if (n == null || Number.isNaN(n)) return "";
+  return String(n);
+}
+
+/** Parse a form string to a number. Returns undefined if blank, actual number otherwise. */
+function strToNum(s: string): number | undefined {
+  if (s === "" || s == null) return undefined;
+  const n = Number(s);
+  return Number.isNaN(n) ? undefined : n;
+}
+
+/** Parse a form string to a number, returning 0 for blank/invalid (for calculations). */
+function strToNumCalc(s: string): number {
+  if (s === "" || s == null) return 0;
+  const n = Number(s);
+  return Number.isNaN(n) ? 0 : n;
+}
+
 function FormField({
   label,
   children,
@@ -104,7 +165,7 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 // Combobox: shows filtered dropdown, free text entry allowed
-function Combobox({
+export function Combobox({
   value,
   onChange,
   options,
@@ -125,6 +186,7 @@ function Combobox({
     o.toLowerCase().includes(query.toLowerCase()),
   );
 
+  // Sync query when value changes externally (e.g. form reset)
   useEffect(() => {
     setQuery(value ?? "");
   }, [value]);
@@ -147,8 +209,9 @@ function Combobox({
       <Input
         value={query}
         onChange={(e) => {
-          setQuery(e.target.value);
-          onChange(e.target.value);
+          const v = e.target.value;
+          setQuery(v);
+          onChange(v);
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
@@ -186,6 +249,88 @@ function Combobox({
   );
 }
 
+/** Build a clean blank FormData for "add" mode */
+function blankFormData(): FormData {
+  return {
+    customerName: "",
+    phoneNumber: "",
+    address: "",
+    consumerAcNo: "",
+    projectStatus: "OPEN",
+    currentStage: undefined,
+    region: "TPCODL",
+    district: undefined,
+    employeeType: "Direct",
+    leadSource: "Referral Partner",
+    employeeName: "",
+    freelancerName: "",
+    kw: "",
+    salePrice: "",
+    invoiceNo: "",
+    bookingAgreementDate: "",
+    signAgreement: false,
+    digitalApprovedLetter: false,
+    bookingAmount: "",
+    bookingAmountDate: "",
+    financeAmount1: "",
+    financeDate1: "",
+    financeAmount2: "",
+    financeDate2: "",
+    cashAmount2: "",
+    cashAmount2Date: "",
+    gstAmount: "",
+    gstFillingMonth: "",
+    subsidyDisbursed: "",
+    materialPurchaseDate: "",
+    deliveryDate: "",
+    ewayBillNo: "",
+    installationDate: "",
+    netMeteringDate: "",
+    remarks: "",
+  };
+}
+
+/** Convert a SolarProject to FormData, safely converting all numeric fields to strings */
+function projectToFormData(p: SolarProject): FormData {
+  return {
+    customerName: p.customerName ?? "",
+    phoneNumber: p.phoneNumber ?? "",
+    address: p.address ?? "",
+    consumerAcNo: p.consumerAcNo ?? "",
+    projectStatus: p.projectStatus ?? "OPEN",
+    currentStage: p.currentStage ?? undefined,
+    region: p.region ?? "TPCODL",
+    district: p.district ?? undefined,
+    employeeType: p.employeeType ?? "Direct",
+    leadSource: p.leadSource ?? "Referral Partner",
+    employeeName: p.employeeName ?? "",
+    freelancerName: p.freelancerName ?? "",
+    kw: numToStr(p.kw),
+    salePrice: numToStr(p.salePrice),
+    invoiceNo: p.invoiceNo ?? "",
+    bookingAgreementDate: p.bookingAgreementDate ?? "",
+    signAgreement: p.signAgreement ?? false,
+    digitalApprovedLetter: p.digitalApprovedLetter ?? false,
+    bookingAmount: numToStr(p.bookingAmount),
+    bookingAmountDate: p.bookingAmountDate ?? "",
+    financeAmount1: numToStr(p.financeAmount1),
+    financeDate1: p.financeDate1 ?? "",
+    financeAmount2: numToStr(p.financeAmount2),
+    financeDate2: p.financeDate2 ?? "",
+    cashAmount2: numToStr(p.cashAmount2),
+    cashAmount2Date: p.cashAmount2Date ?? "",
+    gstAmount: numToStr(p.gstAmount),
+    gstFillingMonth: p.gstFillingMonth ?? "",
+    subsidyDisbursed: numToStr(p.subsidyDisbursed),
+    materialPurchaseDate: p.materialPurchaseDate ?? "",
+    deliveryDate: p.deliveryDate ?? "",
+    ewayBillNo: p.ewayBillNo ?? "",
+    installationDate: p.installationDate ?? "",
+    netMeteringDate: p.netMeteringDate ?? "",
+    remarks: p.remarks ?? "",
+  };
+}
+
 export function AddEditProjectModal({
   open,
   project,
@@ -199,64 +344,34 @@ export function AddEditProjectModal({
 }: AddEditProjectModalProps) {
   const isEdit = !!project;
 
-  const { register, handleSubmit, reset, control, setValue } =
-    useForm<FormData>({
-      defaultValues: {
-        projectStatus: "OPEN",
-        employeeType: "Direct",
-        leadSource: "Referral Partner",
-        region: "TPCODL",
-        signAgreement: false,
-        digitalApprovedLetter: false,
-        employeeName: "",
-        freelancerName: "",
-      },
-    });
+  const { register, handleSubmit, reset, control } = useForm<FormData>({
+    defaultValues: blankFormData(),
+  });
 
-  const [
-    salePrice,
-    bookingAmount,
-    financeAmount1,
-    financeAmount2,
-    cashAmount2,
-  ] = [
-    useWatch({ control, name: "salePrice" }),
-    useWatch({ control, name: "bookingAmount" }),
-    useWatch({ control, name: "financeAmount1" }),
-    useWatch({ control, name: "financeAmount2" }),
-    useWatch({ control, name: "cashAmount2" }),
-  ];
+  // Watch finance fields as strings — no NaN risk
+  const salePriceStr = useWatch({ control, name: "salePrice" });
+  const bookingAmountStr = useWatch({ control, name: "bookingAmount" });
+  const financeAmount1Str = useWatch({ control, name: "financeAmount1" });
+  const financeAmount2Str = useWatch({ control, name: "financeAmount2" });
+  const cashAmount2Str = useWatch({ control, name: "cashAmount2" });
 
   const totalReceived =
-    (Number(bookingAmount) || 0) +
-    (Number(financeAmount1) || 0) +
-    (Number(financeAmount2) || 0) +
-    (Number(cashAmount2) || 0);
-  const computedPending = (Number(salePrice) || 0) - totalReceived;
+    strToNumCalc(bookingAmountStr) +
+    strToNumCalc(financeAmount1Str) +
+    strToNumCalc(financeAmount2Str) +
+    strToNumCalc(cashAmount2Str);
+  const computedPending = strToNumCalc(salePriceStr) - totalReceived;
 
+  // Reset form whenever the modal opens/closes or project changes
   useEffect(() => {
-    if (project) {
-      const { id: _id, slNo: _slNo, ...rest } = project;
-      reset({
-        ...rest,
-        employeeName: rest.employeeName ?? "",
-        freelancerName: rest.freelancerName ?? "",
-      });
-    } else {
-      reset({
-        projectStatus: "OPEN",
-        employeeType: "Direct",
-        leadSource: "Referral Partner",
-        region: "TPCODL",
-        signAgreement: false,
-        digitalApprovedLetter: false,
-        customerName: "",
-        employeeName: "",
-        freelancerName: "",
-      });
+    if (open) {
+      if (project) {
+        reset(projectToFormData(project));
+      } else {
+        reset(blankFormData());
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project, reset]);
+  }, [open, project, reset]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -271,10 +386,43 @@ export function AddEditProjectModal({
       onAddFreelancerName(freeName);
     }
 
-    const payload: FormData = {
-      ...data,
+    // Convert string fields back to numbers, using undefined for blank
+    const payload: Omit<SolarProject, "id" | "slNo"> = {
+      customerName: data.customerName,
+      phoneNumber: data.phoneNumber || undefined,
+      address: data.address || undefined,
+      consumerAcNo: data.consumerAcNo || undefined,
+      projectStatus: data.projectStatus,
+      currentStage: data.currentStage || undefined,
+      region: data.region,
+      district: data.district || undefined,
+      employeeType: data.employeeType,
+      leadSource: data.leadSource,
       employeeName: empName || undefined,
       freelancerName: freeName || undefined,
+      kw: strToNum(data.kw),
+      salePrice: strToNum(data.salePrice),
+      invoiceNo: data.invoiceNo || undefined,
+      bookingAgreementDate: data.bookingAgreementDate || undefined,
+      signAgreement: data.signAgreement ?? false,
+      digitalApprovedLetter: data.digitalApprovedLetter ?? false,
+      bookingAmount: strToNum(data.bookingAmount),
+      bookingAmountDate: data.bookingAmountDate || undefined,
+      financeAmount1: strToNum(data.financeAmount1),
+      financeDate1: data.financeDate1 || undefined,
+      financeAmount2: strToNum(data.financeAmount2),
+      financeDate2: data.financeDate2 || undefined,
+      cashAmount2: strToNum(data.cashAmount2),
+      cashAmount2Date: data.cashAmount2Date || undefined,
+      gstAmount: strToNum(data.gstAmount),
+      gstFillingMonth: data.gstFillingMonth || undefined,
+      subsidyDisbursed: strToNum(data.subsidyDisbursed),
+      materialPurchaseDate: data.materialPurchaseDate || undefined,
+      deliveryDate: data.deliveryDate || undefined,
+      ewayBillNo: data.ewayBillNo || undefined,
+      installationDate: data.installationDate || undefined,
+      netMeteringDate: data.netMeteringDate || undefined,
+      remarks: data.remarks || undefined,
       pendingAmount: computedPending,
     };
 
@@ -379,7 +527,7 @@ export function AddEditProjectModal({
                 control={control}
                 render={({ field }) => (
                   <Select
-                    value={field.value ?? ""}
+                    value={field.value ?? "_none"}
                     onValueChange={(v) =>
                       field.onChange(
                         v === "_none" ? undefined : (v as ProjectStage),
@@ -433,8 +581,10 @@ export function AddEditProjectModal({
                 control={control}
                 render={({ field }) => (
                   <Select
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
+                    value={field.value ?? "_none"}
+                    onValueChange={(v) =>
+                      field.onChange(v === "_none" ? undefined : v)
+                    }
                   >
                     <SelectTrigger
                       className="h-8 text-sm"
@@ -443,6 +593,7 @@ export function AddEditProjectModal({
                       <SelectValue placeholder="Select district" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="_none">— Select district —</SelectItem>
                       {ODISHA_DISTRICTS.map((d) => (
                         <SelectItem key={d} value={d}>
                           {d}
@@ -508,7 +659,7 @@ export function AddEditProjectModal({
                 render={({ field }) => (
                   <Combobox
                     value={field.value ?? ""}
-                    onChange={(v) => setValue("employeeName", v)}
+                    onChange={field.onChange}
                     options={employeeNameOptions}
                     placeholder="Select or type employee name"
                     dataOcid="input-employeename"
@@ -525,7 +676,7 @@ export function AddEditProjectModal({
                 render={({ field }) => (
                   <Combobox
                     value={field.value ?? ""}
-                    onChange={(v) => setValue("freelancerName", v)}
+                    onChange={field.onChange}
                     options={freelancerNameOptions}
                     placeholder="Select or type freelancer name"
                     dataOcid="input-freelancername"
@@ -539,9 +690,10 @@ export function AddEditProjectModal({
 
             <FormField label="System Size (kW)">
               <Input
-                {...register("kw", { valueAsNumber: true })}
+                {...register("kw")}
                 type="number"
                 step="0.5"
+                min="0"
                 placeholder="e.g. 5"
                 className="h-8 text-sm"
                 data-ocid="input-kw"
@@ -549,8 +701,9 @@ export function AddEditProjectModal({
             </FormField>
             <FormField label="Sale Price (₹)">
               <Input
-                {...register("salePrice", { valueAsNumber: true })}
+                {...register("salePrice")}
                 type="number"
+                min="0"
                 placeholder="e.g. 285000"
                 className="h-8 text-sm"
                 data-ocid="input-saleprice"
@@ -611,8 +764,9 @@ export function AddEditProjectModal({
             {/* Booking Amount + Date */}
             <FormField label="Booking Amount (₹)">
               <Input
-                {...register("bookingAmount", { valueAsNumber: true })}
+                {...register("bookingAmount")}
                 type="number"
+                min="0"
                 placeholder="e.g. 50000"
                 className="h-8 text-sm"
                 data-ocid="input-bookingamount"
@@ -630,8 +784,9 @@ export function AddEditProjectModal({
             {/* Finance 1 */}
             <FormField label="Finance Amount 1 (₹)">
               <Input
-                {...register("financeAmount1", { valueAsNumber: true })}
+                {...register("financeAmount1")}
                 type="number"
+                min="0"
                 className="h-8 text-sm"
                 data-ocid="input-finance1"
               />
@@ -648,8 +803,9 @@ export function AddEditProjectModal({
             {/* Finance 2 */}
             <FormField label="Finance Amount 2 (₹)">
               <Input
-                {...register("financeAmount2", { valueAsNumber: true })}
+                {...register("financeAmount2")}
                 type="number"
+                min="0"
                 className="h-8 text-sm"
                 data-ocid="input-finance2"
               />
@@ -666,8 +822,9 @@ export function AddEditProjectModal({
             {/* Last Payment (cashAmount2) + Date */}
             <FormField label="Last Payment Amount (₹)">
               <Input
-                {...register("cashAmount2", { valueAsNumber: true })}
+                {...register("cashAmount2")}
                 type="number"
+                min="0"
                 placeholder="e.g. 50000"
                 className="h-8 text-sm"
                 data-ocid="input-cash2"
@@ -720,8 +877,9 @@ export function AddEditProjectModal({
             {/* GST + Subsidy */}
             <FormField label="GST Amount (₹)">
               <Input
-                {...register("gstAmount", { valueAsNumber: true })}
+                {...register("gstAmount")}
                 type="number"
+                min="0"
                 className="h-8 text-sm"
                 data-ocid="input-gst"
               />
@@ -736,8 +894,9 @@ export function AddEditProjectModal({
             </FormField>
             <FormField label="Subsidy Disbursed (₹)">
               <Input
-                {...register("subsidyDisbursed", { valueAsNumber: true })}
+                {...register("subsidyDisbursed")}
                 type="number"
+                min="0"
                 className="h-8 text-sm"
                 data-ocid="input-subsidy"
               />

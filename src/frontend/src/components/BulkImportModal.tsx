@@ -5,13 +5,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  TEMPLATE_CSV_HEADERS,
+  downloadCSVTemplate,
+} from "@/constants/csvTemplate";
 import type {
   CreateProjectInput,
   ProjectStage,
   ProjectStatus,
   SolarProject,
 } from "@/types/project";
-import { AlertCircle, CheckCircle2, Download, Upload, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 interface BulkImportModalProps {
@@ -34,103 +38,65 @@ interface ImportSummary {
   skipped: number;
 }
 
-const TEMPLATE_HEADERS = [
-  "SL No",
-  "Customer Name",
-  "Phone",
-  "Address",
-  "Region",
-  "District",
-  "Lead Source",
-  "Employee Name",
-  "Freelancer Name",
-  "Status",
-  "KW",
-  "Sale Price",
-  "Booking Amount",
-  "Booking Amount Date",
-  "Finance Amount 1",
-  "Finance Amount 1 Date",
-  "Finance Amount 2",
-  "Finance Amount 2 Date",
-  "Last Payment Amount",
-  "Last Payment Date",
-  "Current Stage",
-  "GST Number",
-  "Invoice Number",
-  "AC No",
-  "Application No",
-  "Discom No",
-  "Net Meter No",
-  "Remarks",
-  "Notes",
-  "Installation Date",
-  "JE Inspection Date",
-  "Net Metering Date",
-  "Subsidy Date",
-];
-
-const TEMPLATE_EXAMPLE = [
-  "1",
-  "Ramesh Kumar",
-  "9876543210",
-  "12 Main Road, Bhubaneswar",
-  "TPCODL",
-  "Khurda",
-  "Referral Partner",
-  "Saumya Kanta Swain",
-  "Raju Sharma",
-  "OPEN",
-  "5",
-  "285000",
-  "50000",
-  "2024-01-10",
-  "180000",
-  "2024-01-20",
-  "0",
-  "",
-  "0",
-  "",
-  "Registration",
-  "GST12345",
-  "INV-2024-001",
-  "TPCODL-2024-001",
-  "APP-001",
-  "DISCOM-001",
-  "NM-001",
-  "Site survey done",
-  "Finance pending",
-  "2024-02-15",
-  "2024-03-01",
-  "2024-03-15",
-  "2024-04-01",
-];
-
-function downloadTemplate() {
-  const rows = [
-    TEMPLATE_HEADERS.join(","),
-    TEMPLATE_EXAMPLE.map((v) => `"${v}"`).join(","),
-  ];
-  const csv = rows.join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "solar_projects_template.csv";
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
+/**
+ * Parse a numeric cell value — trims whitespace, strips currency symbols/commas.
+ * Returns the parsed number, or 0 if empty/invalid.
+ */
 function parseNumber(val: string | undefined): number {
   if (!val || val.trim() === "") return 0;
-  const n = Number.parseFloat(val.replace(/[^\d.-]/g, ""));
+  // Remove currency symbols, spaces, and commas; keep digits, dots, and leading minus
+  const cleaned = val
+    .trim()
+    .replace(/[₹$€£,\s]/g, "")
+    .replace(/[^\d.-]/g, "");
+  if (cleaned === "" || cleaned === "-" || cleaned === ".") return 0;
+  const n = Number.parseFloat(cleaned);
   return Number.isNaN(n) ? 0 : n;
 }
 
+/**
+ * Parse a date cell value — handles YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY.
+ * Returns ISO date string (YYYY-MM-DD) or undefined for blank/invalid.
+ */
 function parseDate(val: string | undefined): string | undefined {
   if (!val || val.trim() === "") return undefined;
-  const d = new Date(val.trim());
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString().split("T")[0];
+  const raw = val.trim();
+
+  // Already in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const d = new Date(`${raw}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? undefined : raw;
+  }
+
+  // DD/MM/YYYY format
+  const ddmmyyyy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyy) {
+    const [, dd, mm, yyyy] = ddmmyyyy;
+    const isoStr = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    const d = new Date(`${isoStr}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? undefined : isoStr;
+  }
+
+  // MM/DD/YYYY format
+  const mmddyyyy = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (mmddyyyy) {
+    const [, mm, dd, yyyy] = mmddyyyy;
+    const isoStr = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    const d = new Date(`${isoStr}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? undefined : isoStr;
+  }
+
+  // Fallback: try native Date parsing (handles many formats)
+  const d = new Date(raw);
+  if (!Number.isNaN(d.getTime())) {
+    // Format as YYYY-MM-DD
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return undefined;
 }
 
 function parseCSV(text: string): string[][] {
@@ -142,7 +108,13 @@ function parseCSV(text: string): string[][] {
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
-        inQuotes = !inQuotes;
+        // Handle doubled quotes inside quoted field
+        if (inQuotes && line[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
       } else if (ch === "," && !inQuotes) {
         cells.push(cell.trim());
         cell = "";
@@ -155,27 +127,33 @@ function parseCSV(text: string): string[][] {
   });
 }
 
-function buildProject(
+export function buildProject(
   row: string[],
   headers: string[],
   slNo: number,
 ): CreateProjectInput {
-  const get = (name: string) => {
+  /** Case-insensitive, trimmed header lookup */
+  const get = (name: string): string | undefined => {
     const idx = headers.findIndex(
-      (h) => h.toLowerCase().trim() === name.toLowerCase(),
+      (h) => h.toLowerCase().trim() === name.toLowerCase().trim(),
     );
     return idx >= 0 ? row[idx]?.trim() : undefined;
   };
 
+  // ── Finance fields ──────────────────────────────────────────────────────────
   const salePrice = parseNumber(get("sale price"));
   const bookingAmount = parseNumber(get("booking amount"));
   const financeAmount1 = parseNumber(get("finance amount 1"));
   const financeAmount2 = parseNumber(get("finance amount 2"));
+  // "Last Payment Amount" → cashAmount2 in the data model
   const cashAmount2 = parseNumber(get("last payment amount"));
+
+  // Always compute pending from the four received amounts
   const pendingAmount =
     salePrice - (bookingAmount + financeAmount1 + financeAmount2 + cashAmount2);
 
-  const rawStatus = (get("status") ?? "OPEN").toUpperCase();
+  // ── Status & Stage ──────────────────────────────────────────────────────────
+  const rawStatus = (get("status") ?? "OPEN").toUpperCase().trim();
   const validStatuses: ProjectStatus[] = [
     "OPEN",
     "ONGOING",
@@ -188,7 +166,7 @@ function buildProject(
     ? (rawStatus as ProjectStatus)
     : "OPEN";
 
-  const rawStage = get("current stage");
+  const rawStage = (get("current stage") ?? "").trim();
   const validStages: ProjectStage[] = [
     "Registration",
     "Digital Approval",
@@ -204,43 +182,56 @@ function buildProject(
       ? (rawStage as ProjectStage)
       : undefined;
 
-  const rawLeadSource = get("lead source") ?? "Referral Partner";
-  const leadSource =
+  const rawLeadSource = (get("lead source") ?? "Referral Partner").trim();
+  const leadSource: string =
     rawLeadSource === "Freelancer" ? "Freelancer" : "Referral Partner";
 
+  // ── Build the project ───────────────────────────────────────────────────────
   return {
     slNo,
     customerName: get("customer name") ?? "",
-    phoneNumber: get("phone"),
-    address: get("address"),
-    region: get("region") ?? "",
-    district: get("district"),
+    phoneNumber: get("phone") || undefined,
+    address: get("address") || undefined,
+    region: get("region") ?? "TPCODL",
+    district: get("district") || undefined,
     leadSource,
-    employeeName: get("employee name"),
-    freelancerName: get("freelancer name"),
+    employeeName: get("employee name") || undefined,
+    freelancerName: get("freelancer name") || undefined,
     employeeType: "Direct",
     projectStatus,
     currentStage,
     kw: parseNumber(get("kw")) || undefined,
     salePrice: salePrice || undefined,
-    bookingAmount: bookingAmount || undefined,
+
+    // Finance amounts — only set when > 0 to avoid saving 0 as a real entry
+    bookingAmount: bookingAmount > 0 ? bookingAmount : undefined,
     bookingAmountDate: parseDate(get("booking amount date")),
-    financeAmount1: financeAmount1 || undefined,
+    financeAmount1: financeAmount1 > 0 ? financeAmount1 : undefined,
+    // Template header is "Finance Amount 1 Date"
     financeDate1: parseDate(get("finance amount 1 date")),
-    financeAmount2: financeAmount2 || undefined,
+    financeAmount2: financeAmount2 > 0 ? financeAmount2 : undefined,
+    // Template header is "Finance Amount 2 Date"
     financeDate2: parseDate(get("finance amount 2 date")),
-    cashAmount2: cashAmount2 || undefined,
+    cashAmount2: cashAmount2 > 0 ? cashAmount2 : undefined,
+    // Template header is "Last Payment Date"
     cashAmount2Date: parseDate(get("last payment date")),
+
+    // Misc dates and IDs
     installationDate: parseDate(get("installation date")),
     netMeteringDate: parseDate(get("net metering date")),
-    invoiceNo: get("invoice number"),
-    consumerAcNo: get("ac no"),
-    remarks: get("remarks"),
+    invoiceNo: get("invoice number") || undefined,
+    consumerAcNo: get("ac no") || undefined,
+    remarks: get("remarks") || undefined,
+
+    // Pending is always recomputed here AND in useProjects.addProject
     pendingAmount,
   };
 }
 
-function parseCsvToProjects(text: string, startSlNo: number): ParseResult {
+export function parseCsvToProjects(
+  text: string,
+  startSlNo: number,
+): ParseResult {
   const rows = parseCSV(text);
   if (rows.length < 2)
     return {
@@ -253,6 +244,20 @@ function parseCsvToProjects(text: string, startSlNo: number): ParseResult {
 
   const valid: CreateProjectInput[] = [];
   const errors: { row: number; message: string }[] = [];
+
+  // Validate that the CSV has the expected headers (warn only — don't reject)
+  const missingHeaders = TEMPLATE_CSV_HEADERS.filter(
+    (expected) =>
+      !headers.some(
+        (h) => h.toLowerCase().trim() === expected.toLowerCase().trim(),
+      ),
+  );
+  if (missingHeaders.length > 0) {
+    errors.push({
+      row: 0,
+      message: `Missing columns: ${missingHeaders.join(", ")}. Check your template.`,
+    });
+  }
 
   dataRows.forEach((row, i) => {
     const rowNum = i + 2;
@@ -395,11 +400,11 @@ export function BulkImportModal({
             </p>
             <button
               type="button"
-              onClick={downloadTemplate}
+              onClick={downloadCSVTemplate}
               className="inline-flex items-center gap-1.5 mt-1 text-primary hover:text-primary/80 font-medium transition-colors duration-150"
               data-ocid="modal-download-template"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Upload className="w-3.5 h-3.5 rotate-180" />
               Download Template CSV
             </button>
           </div>

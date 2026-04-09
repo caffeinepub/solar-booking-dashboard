@@ -26,6 +26,27 @@ export const DEFAULT_EMPLOYEE_NAMES = [
   "Ayush Kasyap",
 ];
 
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Safely convert a value that may be number | undefined | null | NaN to a clean number */
+function safeNum(v: number | undefined | null): number | undefined {
+  if (v == null) return undefined;
+  if (Number.isNaN(v)) return undefined;
+  return v;
+}
+
+/** Safely convert a value to number, defaulting to 0 for undefined/null/NaN (for calculations) */
+function safeNumCalc(v: number | undefined | null): number {
+  if (v == null || Number.isNaN(v)) return 0;
+  return v;
+}
+
+/** Safely convert a string that may be undefined/null/"" to string | undefined */
+function safeStr(v: string | undefined | null): string | undefined {
+  if (v == null || v === "") return undefined;
+  return v;
+}
+
 // ─── Type mappers ──────────────────────────────────────────────────────────────
 
 function mapBackendStatus(status: BackendProjectStatus): ProjectStatus {
@@ -48,50 +69,54 @@ function mapFrontendStatus(status: ProjectStatus): BackendProjectStatus {
   return map[status];
 }
 
-function backendToFrontend(bp: BackendProject): SolarProject {
+export function backendToFrontend(bp: BackendProject): SolarProject {
   return {
     id: bp.id,
     slNo: Number(bp.slNo),
-    employeeType: bp.employeeType,
-    leadSource: bp.leadSource,
-    region: bp.region,
-    customerName: bp.customerName,
+    employeeType: bp.employeeType ?? "Direct",
+    leadSource: bp.leadSource ?? "Referral Partner",
+    region: bp.region ?? "",
+    customerName: bp.customerName ?? "",
     projectStatus: mapBackendStatus(bp.projectStatus),
-    address: bp.address,
-    phoneNumber: bp.phoneNumber,
-    consumerAcNo: bp.consumerAcNo,
-    kw: bp.kw,
-    salePrice: bp.salePrice,
-    bookingAmount: bp.bookingAmount,
-    bookingAmountDate: bp.bookingAmountDate,
-    bookingAgreementDate: bp.bookingAgreementDate,
-    signAgreement: bp.signAgreement,
-    digitalApprovedLetter: bp.digitalApprovedLetter,
-    financeAmount1: bp.financeAmount1,
-    financeDate1: bp.financeDate1,
-    financeAmount2: bp.financeAmount2,
-    financeDate2: bp.financeDate2,
-    cashAmount2: bp.cashAmount2,
-    cashAmount2Date: bp.cashAmount2Date,
-    materialPurchaseDate: bp.materialPurchaseDate,
-    deliveryDate: bp.deliveryDate,
-    ewayBillNo: bp.ewayBillNo,
-    installationDate: bp.installationDate,
-    netMeteringDate: bp.netMeteringDate,
-    pendingAmount: bp.pendingAmount,
-    subsidyDisbursed: bp.subsidyDisbursed,
-    invoiceNo: bp.invoiceNo,
-    gstAmount: bp.gstAmount,
-    gstFillingMonth: bp.gstFillingMonth,
-    remarks: bp.remarks,
-    currentStage: bp.currentStage as ProjectStage | undefined,
-    district: bp.district,
-    employeeName: bp.employeeName,
-    freelancerName: bp.freelancerName,
+    // Optional string fields
+    address: safeStr(bp.address),
+    phoneNumber: safeStr(bp.phoneNumber),
+    consumerAcNo: safeStr(bp.consumerAcNo),
+    district: safeStr(bp.district),
+    employeeName: safeStr(bp.employeeName),
+    freelancerName: safeStr(bp.freelancerName),
+    invoiceNo: safeStr(bp.invoiceNo),
+    remarks: safeStr(bp.remarks),
+    gstFillingMonth: safeStr(bp.gstFillingMonth),
+    ewayBillNo: safeStr(bp.ewayBillNo),
+    currentStage: safeStr(bp.currentStage) as ProjectStage | undefined,
+    // Optional date fields
+    bookingAmountDate: safeStr(bp.bookingAmountDate),
+    bookingAgreementDate: safeStr(bp.bookingAgreementDate),
+    financeDate1: safeStr(bp.financeDate1),
+    financeDate2: safeStr(bp.financeDate2),
+    cashAmount2Date: safeStr(bp.cashAmount2Date),
+    materialPurchaseDate: safeStr(bp.materialPurchaseDate),
+    deliveryDate: safeStr(bp.deliveryDate),
+    installationDate: safeStr(bp.installationDate),
+    netMeteringDate: safeStr(bp.netMeteringDate),
+    // Optional boolean fields
+    signAgreement: bp.signAgreement ?? false,
+    digitalApprovedLetter: bp.digitalApprovedLetter ?? false,
+    // Optional numeric fields — sanitize NaN/null
+    kw: safeNum(bp.kw),
+    salePrice: safeNum(bp.salePrice),
+    bookingAmount: safeNum(bp.bookingAmount),
+    financeAmount1: safeNum(bp.financeAmount1),
+    financeAmount2: safeNum(bp.financeAmount2),
+    cashAmount2: safeNum(bp.cashAmount2),
+    pendingAmount: safeNum(bp.pendingAmount),
+    gstAmount: safeNum(bp.gstAmount),
+    subsidyDisbursed: safeNum(bp.subsidyDisbursed),
   };
 }
 
-function frontendToBackendCreate(
+export function frontendToBackendCreate(
   input: CreateProjectInput,
 ): BackendCreateInput {
   return {
@@ -104,40 +129,40 @@ function frontendToBackendCreate(
     address: input.address,
     phoneNumber: input.phoneNumber,
     consumerAcNo: input.consumerAcNo,
-    kw: input.kw,
-    salePrice: input.salePrice,
-    bookingAmount: input.bookingAmount,
-    bookingAmountDate: input.bookingAmountDate,
-    bookingAgreementDate: input.bookingAgreementDate,
-    signAgreement: input.signAgreement,
-    digitalApprovedLetter: input.digitalApprovedLetter,
-    financeAmount1: input.financeAmount1,
-    financeDate1: input.financeDate1,
-    financeAmount2: input.financeAmount2,
-    financeDate2: input.financeDate2,
-    cashAmount2: input.cashAmount2,
-    cashAmount2Date: input.cashAmount2Date,
-    materialPurchaseDate: input.materialPurchaseDate,
-    deliveryDate: input.deliveryDate,
-    ewayBillNo: input.ewayBillNo,
-    installationDate: input.installationDate,
-    netMeteringDate: input.netMeteringDate,
-    pendingAmount: input.pendingAmount,
-    subsidyDisbursed: input.subsidyDisbursed,
-    invoiceNo: input.invoiceNo,
-    gstAmount: input.gstAmount,
-    gstFillingMonth: input.gstFillingMonth,
-    remarks: input.remarks,
-    currentStage: input.currentStage,
     district: input.district,
     employeeName: input.employeeName,
     freelancerName: input.freelancerName,
+    invoiceNo: input.invoiceNo,
+    remarks: input.remarks,
+    gstFillingMonth: input.gstFillingMonth,
+    ewayBillNo: input.ewayBillNo,
+    currentStage: input.currentStage,
+    bookingAmountDate: input.bookingAmountDate,
+    bookingAgreementDate: input.bookingAgreementDate,
+    financeDate1: input.financeDate1,
+    financeDate2: input.financeDate2,
+    cashAmount2Date: input.cashAmount2Date,
+    materialPurchaseDate: input.materialPurchaseDate,
+    deliveryDate: input.deliveryDate,
+    installationDate: input.installationDate,
+    netMeteringDate: input.netMeteringDate,
+    signAgreement: input.signAgreement,
+    digitalApprovedLetter: input.digitalApprovedLetter,
+    kw: input.kw,
+    salePrice: input.salePrice,
+    bookingAmount: input.bookingAmount,
+    financeAmount1: input.financeAmount1,
+    financeAmount2: input.financeAmount2,
+    cashAmount2: input.cashAmount2,
+    pendingAmount: input.pendingAmount,
+    gstAmount: input.gstAmount,
+    subsidyDisbursed: input.subsidyDisbursed,
     nextStage: undefined,
     lastPaymentDate: undefined,
   };
 }
 
-function frontendToBackendUpdate(
+export function frontendToBackendUpdate(
   id: string,
   p: SolarProject,
 ): BackendUpdateInput {
@@ -152,45 +177,49 @@ function frontendToBackendUpdate(
     address: p.address,
     phoneNumber: p.phoneNumber,
     consumerAcNo: p.consumerAcNo,
-    kw: p.kw,
-    salePrice: p.salePrice,
-    bookingAmount: p.bookingAmount,
-    bookingAmountDate: p.bookingAmountDate,
-    bookingAgreementDate: p.bookingAgreementDate,
-    signAgreement: p.signAgreement,
-    digitalApprovedLetter: p.digitalApprovedLetter,
-    financeAmount1: p.financeAmount1,
-    financeDate1: p.financeDate1,
-    financeAmount2: p.financeAmount2,
-    financeDate2: p.financeDate2,
-    cashAmount2: p.cashAmount2,
-    cashAmount2Date: p.cashAmount2Date,
-    materialPurchaseDate: p.materialPurchaseDate,
-    deliveryDate: p.deliveryDate,
-    ewayBillNo: p.ewayBillNo,
-    installationDate: p.installationDate,
-    netMeteringDate: p.netMeteringDate,
-    pendingAmount: p.pendingAmount,
-    subsidyDisbursed: p.subsidyDisbursed,
-    invoiceNo: p.invoiceNo,
-    gstAmount: p.gstAmount,
-    gstFillingMonth: p.gstFillingMonth,
-    remarks: p.remarks,
-    currentStage: p.currentStage,
     district: p.district,
     employeeName: p.employeeName,
     freelancerName: p.freelancerName,
+    invoiceNo: p.invoiceNo,
+    remarks: p.remarks,
+    gstFillingMonth: p.gstFillingMonth,
+    ewayBillNo: p.ewayBillNo,
+    currentStage: p.currentStage,
+    bookingAmountDate: p.bookingAmountDate,
+    bookingAgreementDate: p.bookingAgreementDate,
+    financeDate1: p.financeDate1,
+    financeDate2: p.financeDate2,
+    cashAmount2Date: p.cashAmount2Date,
+    materialPurchaseDate: p.materialPurchaseDate,
+    deliveryDate: p.deliveryDate,
+    installationDate: p.installationDate,
+    netMeteringDate: p.netMeteringDate,
+    signAgreement: p.signAgreement,
+    digitalApprovedLetter: p.digitalApprovedLetter,
+    kw: p.kw,
+    salePrice: p.salePrice,
+    bookingAmount: p.bookingAmount,
+    financeAmount1: p.financeAmount1,
+    financeAmount2: p.financeAmount2,
+    cashAmount2: p.cashAmount2,
+    pendingAmount: p.pendingAmount,
+    gstAmount: p.gstAmount,
+    subsidyDisbursed: p.subsidyDisbursed,
     nextStage: undefined,
     lastPaymentDate: undefined,
   };
 }
 
-function calcPending(p: Partial<SolarProject>): number {
-  const sale = p.salePrice ?? 0;
-  const booking = p.bookingAmount ?? 0;
-  const f1 = p.financeAmount1 ?? 0;
-  const f2 = p.financeAmount2 ?? 0;
-  const cash = p.cashAmount2 ?? 0;
+/**
+ * Calculate pending amount: salePrice - (bookingAmount + financeAmount1 + financeAmount2 + cashAmount2)
+ * Treats undefined/null/NaN as 0. Never returns NaN.
+ */
+export function calcPending(p: Partial<SolarProject>): number {
+  const sale = safeNumCalc(p.salePrice);
+  const booking = safeNumCalc(p.bookingAmount);
+  const f1 = safeNumCalc(p.financeAmount1);
+  const f2 = safeNumCalc(p.financeAmount2);
+  const cash = safeNumCalc(p.cashAmount2);
   return sale - (booking + f1 + f2 + cash);
 }
 
@@ -421,8 +450,10 @@ export function useProjects(filters?: ProjectFilters) {
     ongoing: filtered.filter((p) => p.projectStatus === "ONGOING").length,
     closed: filtered.filter((p) => p.projectStatus === "CLOSED").length,
     reject: filtered.filter((p) => p.projectStatus === "REJECT").length,
-    totalKw: filtered.reduce((sum, p) => sum + (p.kw ?? 0), 0),
-    pendingAmount: filtered.reduce((sum, p) => sum + (p.pendingAmount ?? 0), 0),
+    totalKw: filtered.reduce((sum, p) => sum + safeNumCalc(p.kw), 0),
+    // Always recalculate from payment fields so stats are accurate even if
+    // the stored pendingAmount field is stale (e.g. from an old import)
+    pendingAmount: filtered.reduce((sum, p) => sum + calcPending(p), 0),
   };
 
   return {

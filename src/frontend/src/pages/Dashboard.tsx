@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { UserManagementModal } from "@/components/UserManagementModal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { downloadCSVTemplate } from "@/constants/csvTemplate";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/hooks/useProjects";
 import type {
@@ -93,91 +94,6 @@ const ROLE_BADGE: Record<string, string> = {
   "full-edit": "bg-accent/10 text-accent border-accent/20",
   "view-only": "bg-muted text-muted-foreground border-border",
 };
-
-const TEMPLATE_CSV_HEADERS = [
-  "SL No",
-  "Customer Name",
-  "Phone",
-  "Address",
-  "Region",
-  "District",
-  "Lead Source",
-  "Employee Name",
-  "Freelancer Name",
-  "Status",
-  "KW",
-  "Sale Price",
-  "Booking Amount",
-  "Booking Amount Date",
-  "Finance Amount 1",
-  "Finance Amount 1 Date",
-  "Finance Amount 2",
-  "Finance Amount 2 Date",
-  "Last Payment Amount",
-  "Last Payment Date",
-  "Current Stage",
-  "GST Number",
-  "Invoice Number",
-  "AC No",
-  "Application No",
-  "Discom No",
-  "Net Meter No",
-  "Remarks",
-  "Notes",
-  "Installation Date",
-  "JE Inspection Date",
-  "Net Metering Date",
-  "Subsidy Date",
-];
-const TEMPLATE_CSV_EXAMPLE = [
-  "1",
-  "Ramesh Kumar",
-  "9876543210",
-  "12 Main Road, Bhubaneswar",
-  "TPCODL",
-  "Khurda",
-  "Referral Partner",
-  "Saumya Kanta Swain",
-  "Raju Sharma",
-  "OPEN",
-  "5",
-  "285000",
-  "50000",
-  "2024-01-10",
-  "180000",
-  "2024-01-20",
-  "0",
-  "",
-  "0",
-  "",
-  "Registration",
-  "GST12345",
-  "INV-2024-001",
-  "TPCODL-2024-001",
-  "APP-001",
-  "DISCOM-001",
-  "NM-001",
-  "Site survey done",
-  "Finance pending",
-  "2024-02-15",
-  "2024-03-01",
-  "2024-03-15",
-  "2024-04-01",
-];
-
-function downloadTemplate() {
-  const rows = [
-    TEMPLATE_CSV_HEADERS.join(","),
-    TEMPLATE_CSV_EXAMPLE.map((v) => `"${v}"`).join(","),
-  ];
-  const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "solar_projects_template.csv";
-  link.click();
-  URL.revokeObjectURL(url);
-}
 
 export default function Dashboard() {
   const { session, logout } = useAuth();
@@ -337,7 +253,7 @@ export default function Dashboard() {
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs gap-1.5"
-                  onClick={downloadTemplate}
+                  onClick={downloadCSVTemplate}
                   data-ocid="download-template-btn"
                   title="Download CSV Template"
                 >

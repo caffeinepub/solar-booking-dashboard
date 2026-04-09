@@ -17,6 +17,27 @@ function fmt(n?: number) {
   return `₹${n.toLocaleString("en-IN")}`;
 }
 
+/** Always recompute pending from payment fields so display is correct even if stored value is stale */
+export function calcDisplayPending(p: SolarProject): number | undefined {
+  // If there's no sale price at all, nothing to compute
+  if (p.salePrice == null || Number.isNaN(p.salePrice)) return undefined;
+  const booking =
+    p.bookingAmount != null && !Number.isNaN(p.bookingAmount)
+      ? p.bookingAmount
+      : 0;
+  const f1 =
+    p.financeAmount1 != null && !Number.isNaN(p.financeAmount1)
+      ? p.financeAmount1
+      : 0;
+  const f2 =
+    p.financeAmount2 != null && !Number.isNaN(p.financeAmount2)
+      ? p.financeAmount2
+      : 0;
+  const cash =
+    p.cashAmount2 != null && !Number.isNaN(p.cashAmount2) ? p.cashAmount2 : 0;
+  return p.salePrice - (booking + f1 + f2 + cash);
+}
+
 // Stage badge color index based on stage order
 const STAGE_COLORS: Record<string, string> = {
   Registration: "bg-blue-500/10 text-blue-600 border-blue-500/20",
@@ -29,18 +50,25 @@ const STAGE_COLORS: Record<string, string> = {
   Completed: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
 };
 
-function getNextStage(currentStage?: string): string | null {
+/**
+ * Returns the next stage after currentStage, or null if none/completed.
+ * Returns null (not "—") so callers can check truthiness cleanly.
+ */
+export function getNextStage(currentStage?: string): string | null {
   if (!currentStage) return null;
-  if (currentStage === "Completed") return "—";
+  if (currentStage === "Completed") return null; // already done
   const idx = PROJECT_STAGES.indexOf(
     currentStage as (typeof PROJECT_STAGES)[number],
   );
-  if (idx === -1) return null;
-  if (idx === PROJECT_STAGES.length - 1) return null;
+  if (idx === -1) return null; // unknown stage
+  if (idx >= PROJECT_STAGES.length - 1) return null; // last stage
   return PROJECT_STAGES[idx + 1];
 }
 
-function getCompletedStage(currentStage?: string): string | null {
+/**
+ * Returns the last completed stage (the one before currentStage), or null if at first stage or no stage set.
+ */
+export function getCompletedStage(currentStage?: string): string | null {
   if (!currentStage) return null;
   const idx = PROJECT_STAGES.indexOf(
     currentStage as (typeof PROJECT_STAGES)[number],
@@ -140,7 +168,7 @@ export function ProjectTableRow({
       >
         {(() => {
           const next = getNextStage(project.currentStage);
-          if (!next || next === "—")
+          if (!next)
             return <span className="text-muted-foreground text-xs">—</span>;
           const colorClass =
             STAGE_COLORS[next] ??
@@ -158,17 +186,27 @@ export function ProjectTableRow({
         {fmt(project.salePrice)}
       </td>
       <td className="px-3 py-2 text-right tabular-nums text-sm">
-        {project.pendingAmount != null && project.pendingAmount > 0 ? (
-          <span className="text-accent font-semibold">
-            {fmt(project.pendingAmount)}
-          </span>
-        ) : project.pendingAmount === 0 ? (
-          <span className="[color:var(--stat-closed)] text-xs font-medium">
-            Cleared
-          </span>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
+        {(() => {
+          const pending = calcDisplayPending(project);
+          if (pending == null)
+            return <span className="text-muted-foreground">—</span>;
+          if (pending > 0)
+            return (
+              <span className="text-accent font-semibold">{fmt(pending)}</span>
+            );
+          if (pending === 0)
+            return (
+              <span className="[color:var(--stat-closed)] text-xs font-medium">
+                Cleared
+              </span>
+            );
+          // Negative: overpayment
+          return (
+            <span className="text-destructive font-semibold">
+              {fmt(pending)}
+            </span>
+          );
+        })()}
       </td>
       <td className="px-3 py-2 text-xs text-muted-foreground">
         {project.bookingAgreementDate ?? "—"}
